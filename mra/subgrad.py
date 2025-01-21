@@ -11,7 +11,7 @@ from mra.mra_prim_rec import *
 
 
 
-def dual_proj_subgradient(fun_agents, fun_obj_val, primal_var_size, func_alpha_k, A_ineq=None, b_ineq=None, A_eq=None, b_eq=None, price_max=None, price_min=None, alpha = 1, 
+def dual_proj_subgradient(fun_agents, fun_obj_val, primal_var_size, func_alpha_k, A_ineq=None, b_ineq=None, A_eq=None, b_eq=None, price_max=None, price_min=None, 
                                        relaxed=True, postprocessing=1, K_i=10, num_iters = 100, true_f=None, eps_viol=1e-8,
                                        print_freq=1, eps_lamb=1e-6, res_type="primal_compl_slack", history=1):
     assert res_type in ["primal_compl_slack", "primal"]
@@ -85,7 +85,7 @@ def dual_proj_subgradient(fun_agents, fun_obj_val, primal_var_size, func_alpha_k
 
 
 
-def dual_subgrad_with_averaging(fun_agents, fun_obj_val, primal_var_size, func_alpha_k, A_ineq=None, b_ineq=None, A_eq=None, b_eq=None, price_max=None, price_min=None, alpha = 1, 
+def dual_subgrad_with_averaging(fun_agents, fun_obj_val, primal_var_size, func_alpha_k, A_ineq=None, b_ineq=None, A_eq=None, b_eq=None, price_max=None, price_min=None,  
                                        relaxed=True, postprocessing=1, K_i=10, num_iters = 100, true_f=None, eps_viol=1e-8,
                                        print_freq=1, eps_lamb=1e-6, res_type="primal_compl_slack", history=1):
     assert res_type in ["primal_compl_slack", "primal"]
