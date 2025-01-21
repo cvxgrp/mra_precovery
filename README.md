@@ -1,2 +1,1 @@
-# mra_precovery
-Multiple-response agents
+# Price directed distributed optimization
