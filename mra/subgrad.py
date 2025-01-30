@@ -58,8 +58,8 @@ def dual_proj_subgradient(fun_agents, fun_obj_val, primal_var_size, func_alpha_k
             if logging.all_results['viol_primal_compl_mra_xk'][-1] - 1e-6 > logging.all_results['viol_primal_compl_xk'][-1]:
                 print(f"VIOLATION: {logging.all_results['viol_primal_compl_mra_xk'][-1] - 1e-6 - logging.all_results['viol_primal_compl_xk'][-1]}=")
         elif res_type == "primal":
-            if logging.all_results['viol_primal_mra_xk'][-1] - 1e-6 > logging.all_results['viol_compl_xk'][-1]:
-                print(f"VIOLATION: {logging.all_results['viol_primal_compl_mra_xk'][-1] - 1e-6 - logging.all_results['viol_primal_compl_xk'][-1]}=")
+            if logging.all_results['viol_primal_mra_xk'][-1] - 1e-6 > logging.all_results['viol_primal_xk'][-1]:
+                print(f"VIOLATION: {logging.all_results['viol_primal_mra_xk'][-1] - 1e-6 - logging.all_results['viol_primal_xk'][-1]}=")
         
 
         lamb_rel_diff = np.linalg.norm(lamb_k - lamb_prev) / np.linalg.norm(lamb_prev)

@@ -82,6 +82,17 @@ def primal_violations(C, d, xs):
     return res
 
 
+def residuals_admm(E, xis, z_k, z_k_old, rho, y_k):
+    s_k = rho * np.linalg.norm(E @ (z_k - z_k_old))
+    s_k_den = np.linalg.norm(np.concatenate(y_k, axis=0))
+    s_k_norm = s_k / s_k_den
+    r_k = np.linalg.norm(np.concatenate(xis, axis=0)[:, :1] - E @ z_k)
+    r_k_den = max(np.linalg.norm(np.concatenate(xis, axis=0)[:, :1]),
+                  np.linalg.norm(E @ z_k))
+    r_k_norm = r_k / r_k_den
+    return r_k, s_k, r_k_norm, s_k_norm
+
+
 def cvxpy_max_viol_mean(C, d, X, f="max"):
     num = X.shape[1]
     theta = cp.Variable((num, 1), nonneg=True)
@@ -161,6 +172,37 @@ def primal_res_viol(x_k, A_ineq=None, b_ineq=None, A_eq=None, b_eq=None):
         res += np.sum(np.abs(A_eq @ x_k - b_eq)) 
     return res
 
+def primal_residuals_admm(E, xis, z_k, z_k_old, rho, y_k, normalized=True):
+    if isinstance(xis, list):
+        x_k = np.concatenate(xis, axis=0)[:, :1]
+    else:
+        x_k = xis
+    r_k = np.linalg.norm(x_k - E @ z_k)
+    r_k_den = max(np.linalg.norm(x_k), np.linalg.norm(E @ z_k))
+    r_k_norm = r_k / r_k_den
+    if normalized: return r_k_norm
+    else:  return r_k
+
+def dual_residuals_admm(E, xis, z_k, z_k_old, rho, y_k, normalized=True):
+    s_k = rho * np.linalg.norm(E @ (z_k - z_k_old))
+    s_k_den = np.linalg.norm(np.concatenate(y_k, axis=0))
+    s_k_norm = s_k / s_k_den
+    if normalized: return s_k_norm
+    else:  return s_k
+
+def primal_dual_residuals_admm(E, xis, z_k, z_k_old, rho, y_k, normalized=True):
+    if isinstance(xis, list):
+        x_k = np.concatenate(xis, axis=0)[:, :1]
+    else:
+        x_k = xis
+    r_k = np.linalg.norm(x_k - E @ z_k)
+    r_k_den = max(np.linalg.norm(x_k), np.linalg.norm(E @ z_k))
+    r_k_norm = r_k / r_k_den
+    s_k = rho * np.linalg.norm(E @ (z_k - z_k_old))
+    s_k_den = np.linalg.norm(np.concatenate(y_k, axis=0))
+    s_k_norm = s_k / s_k_den
+    if normalized: return r_k_norm + s_k_norm
+    else:  return r_k + s_k
 
 def aggregate_constraints(A_ineq=None, b_ineq=None, A_eq=None, b_eq=None):
     dual_var_size = 0
@@ -230,7 +272,7 @@ def plot_lamb_k_diff(all_res, filename=None, folder="../plots/"):
 
 
 def plot_prim_complem_residuals(all_res, all_results_eps, all_results_noisy_y, b_norm0, eps_sublevel, percent, 
-                                filename=None, T=None, folder="../plots/"):
+                                filename=None, T=None, folder="../plots/", admm=False):
     if T is None:
         T = len(all_res["f_xk"])
     cmp = ["orange", "red", "blue", "forestgreen", "violet"]
@@ -252,10 +294,13 @@ def plot_prim_complem_residuals(all_res, all_results_eps, all_results_noisy_y, b
         "sub_eps", np.array(all_results_eps["viol_primal_mra_xk"])[:T][-1] / b_norm,
         "noisy_y", np.array(all_results_noisy_y["viol_primal_mra_xk"])[:T][-1] / b_norm)
 
-    if b_norm0 > 0:
-        axs.set_ylabel(r'$(r_p+r_c)/\|b\|$')
+    if admm:
+        axs.set_ylabel(r'$r_p+r_d$')
     else:
-        axs.set_ylabel(r'$(r_p+r_c)$')
+        if b_norm0 > 0:
+            axs.set_ylabel(r'$(r_p+r_c)/\|b\|$')
+        else:
+            axs.set_ylabel(r'$r_p+r_c$')
     axs.set_xlabel(r'$k$')
     axs.set_yscale('log')
 
@@ -264,7 +309,7 @@ def plot_prim_complem_residuals(all_res, all_results_eps, all_results_noisy_y, b
 
 
 def plot_prim_residuals(all_res, all_results_eps, all_results_noisy_y, b_norm0, eps_sublevel, percent, 
-                        filename=None, T=None, folder="../plots/"):
+                        filename=None, T=None, folder="../plots/", admm=False):
     if T is None:
         T = len(all_res["f_xk"])
     cmp = ["orange", "red", "blue", "forestgreen", "violet"]
@@ -287,7 +332,8 @@ def plot_prim_residuals(all_res, all_results_eps, all_results_noisy_y, b_norm0, 
         "sub_eps", np.array(all_results_eps["viol_primal_mra_xk"])[:T][-1] / b_norm,
         "noisy_y", np.array(all_results_noisy_y["viol_primal_mra_xk"])[:T][-1] / b_norm)
 
-    if b_norm0 > 0:
+
+    if b_norm0 > 0 and not admm:
         axs.set_ylabel(r'$r_p/\|b\|$')
     else:
         axs.set_ylabel(r'$r_p$')
@@ -323,7 +369,7 @@ def plot_lagr_subopt_all(all_res, all_results_eps, all_results_noisy_y, eps_subl
 
 
 def plot_eps_all_metrics_3x(all_results_eps, all_results_noisy_y, K_i, true_f, 
-                                b_norm0, percents, filename=None, T=None, folder="../plots/"):
+                                b_norm0, percents, filename=None, T=None, folder="../plots/", admm=False):
     cmp = ["red", "tomato", "blue", "royalblue"]
     lstyle = ["-", "--"]
     b_norm = 1 if b_norm0 == 0 else b_norm0
@@ -348,7 +394,7 @@ def plot_eps_all_metrics_3x(all_results_eps, all_results_noisy_y, K_i, true_f,
                         color=cmp[i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
         ax_dict['B'].plot(np.array(all_results_noisy_y[eps]["viol_primal_mra_xk"]) / b_norm,
                         color=cmp[2 + i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
-    if b_norm0 > 0:
+    if b_norm0 > 0 and not admm:
         ax_dict['C'].set_ylabel(r'$r_p/\|b\|$')
     else:
         ax_dict['C'].set_ylabel(r'$r_p$')
@@ -360,10 +406,14 @@ def plot_eps_all_metrics_3x(all_results_eps, all_results_noisy_y, K_i, true_f,
                         color=cmp[i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
         ax_dict['C'].plot(np.array(all_results_noisy_y[eps]["viol_primal_compl_mra_xk"]) / b_norm,
                         color=cmp[2 + i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
-    if b_norm0 > 0:
-        ax_dict['C'].set_ylabel(r'$(r_p+r_c)/\|b\|$', fontsize=14)
+    
+    if admm:
+        ax_dict['C'].set_ylabel(r'$r_p+r_d$')
     else:
-        ax_dict['C'].set_ylabel(r'$(r_p+r_c)$', fontsize=14)
+        if b_norm0 > 0:
+            ax_dict['C'].set_ylabel(r'$(r_p+r_c)/\|b\|$', fontsize=14)
+        else:
+            ax_dict['C'].set_ylabel(r'$(r_p+r_c)$', fontsize=14)
     ax_dict['C'].set_xlabel(r'$k$', fontsize=14)
     ax_dict['C'].set_yscale('log')
 
@@ -387,7 +437,7 @@ def plot_eps_all_metrics_3x(all_results_eps, all_results_noisy_y, K_i, true_f,
 
 
 def plot_N_all_metrics_3x(all_results_eps, all_results_noisy_y, eps_sublevel, true_f, 
-                                b_norm0, num_points, filename=None, T=None, folder="../plots/"):
+                                b_norm0, num_points, filename=None, T=None, folder="../plots/", admm=False):
     cmp = ["red", "tomato", "blue", "royalblue"]
     lstyle = ["-", "--"]
     b_norm = 1 if b_norm0 == 0 else b_norm0
@@ -413,10 +463,13 @@ def plot_N_all_metrics_3x(all_results_eps, all_results_noisy_y, eps_sublevel, tr
                         color=cmp[i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
         ax_dict['B'].plot(np.array(all_results_noisy_y[K_i]["viol_primal_compl_mra_xk"]) / b_norm,
                         color=cmp[2 + i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
-    if b_norm0 > 0:
-        ax_dict['B'].set_ylabel(r'$(r_p+r_c)/\|b\|$', fontsize=14)
+    if admm:
+        ax_dict['B'].set_ylabel(r'$r_p+r_d$')
     else:
-        ax_dict['B'].set_ylabel(r'$(r_p+r_c)$', fontsize=14)
+        if b_norm0 > 0:
+            ax_dict['B'].set_ylabel(r'$(r_p+r_c)/\|b\|$', fontsize=14)
+        else:
+            ax_dict['B'].set_ylabel(r'$(r_p+r_c)$', fontsize=14)
     ax_dict['B'].set_xlabel(r'$k$', fontsize=14)
     ax_dict['B'].set_yscale('log')
 
@@ -425,7 +478,8 @@ def plot_N_all_metrics_3x(all_results_eps, all_results_noisy_y, eps_sublevel, tr
                         color=cmp[i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
         ax_dict['C'].plot(np.array(all_results_noisy_y[K_i]["viol_primal_mra_xk"]) / b_norm,
                         color=cmp[2 + i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
-    if b_norm0 > 0:
+    
+    if b_norm0 > 0 and not admm:
         ax_dict['C'].set_ylabel(r'$r_p/\|b\|$')
     else:
         ax_dict['C'].set_ylabel(r'$r_p$')
@@ -465,7 +519,7 @@ def subopt_of_best_feas_point_only(all_points, true_f, b_norm, eps_feas = 1e-6):
     return subopt_of_best_feas_point_base(fs, rs, true_f, b_norm, eps_feas = 1e-6)
 
 
-def subopt_of_best_feas_point_base(fs, rs, true_f, b_norm, eps_feas = 1e-6):
+def subopt_of_best_feas_point_base(fs, rs, true_f, b_norm, eps_feas=1e-6):
     res = [np.inf]
     best_res = np.inf
     for k in range(len(fs)):
@@ -655,7 +709,8 @@ def plot_eps_all_metrics_4x(all_results_eps, all_results_noisy_y, K_i, true_f,
 
 
 def plot_all_methods_metrics_4x(all_results_eps, all_results_noisy_y, true_f, 
-                                b_norm0, percent, eps_sublevel, filename=None, T=None, folder="../plots/"):
+                                b_norm0, percent, eps_sublevel, filename=None, T=None, 
+                                folder="../plots/", admm=False):
     b_norm = 1 if b_norm0 == 0 else b_norm0
     mosaic = """
     AABB
@@ -698,7 +753,7 @@ def plot_all_methods_metrics_4x(all_results_eps, all_results_noisy_y, true_f,
     ax_dict['B'].plot(np.array(all_res["viol_primal_paver_xk"])[:T] / b_norm, 
                 color=cmp[3], label=r"$\frac{1}{k}\sum_{j=1}^k x^j$", alpha=0.9, lw=0.5, marker='.', markersize=2) 
 
-    if b_norm0 > 0:
+    if b_norm0 > 0 and not admm:
         ax_dict['B'].set_ylabel(r'$r_p/\|b\|$', fontsize=14)
     else:
         ax_dict['B'].set_ylabel(r'$r_p$', fontsize=14)
@@ -714,11 +769,13 @@ def plot_all_methods_metrics_4x(all_results_eps, all_results_noisy_y, true_f,
     ax_dict['C'].plot(np.array(all_results_noisy_y["viol_primal_compl_mra_xk"])[:T] / b_norm,
                     color=cmp[2], label=rf"$\bar x^k, ~\epsilon_p={int(percent*100)}\%$", 
                     alpha=0.9, lw=0.5, marker='.', markersize=2)
-
-    if b_norm0 > 0:
-        ax_dict['C'].set_ylabel(r'$(r_p+r_c)/\|b\|$', fontsize=14)
+    if admm:
+        ax_dict['C'].set_ylabel(r'$r_p+r_d$', fontsize=14)
     else:
-        ax_dict['C'].set_ylabel(r'$(r_p+r_c)$', fontsize=14)
+        if b_norm0 > 0:
+            ax_dict['C'].set_ylabel(r'$(r_p+r_c)/\|b\|$', fontsize=14)
+        else:
+            ax_dict['C'].set_ylabel(r'$(r_p+r_c)$', fontsize=14)
     ax_dict['C'].set_xlabel(r'$k$', fontsize=14)
     ax_dict['C'].set_yscale('log')
 
@@ -730,10 +787,10 @@ def plot_all_methods_metrics_4x(all_results_eps, all_results_noisy_y, true_f,
 
     high_y = max(eps_subopt[np.isfinite(eps_subopt)].max(), 
                 noisy_y_subopt[np.isfinite(noisy_y_subopt)].max(),
-                xk_subopt[np.isfinite(noisy_y_subopt)].max(),
-                paverage_subopt[np.isfinite(noisy_y_subopt)].max(),
+                xk_subopt[np.isfinite(xk_subopt)].max(),
+                paverage_subopt[np.isfinite(paverage_subopt)].max(),
                 )
-    proj_high_y = proj_subopt[np.isfinite(noisy_y_subopt)].max()
+    proj_high_y = proj_subopt[np.isfinite(proj_subopt)].max()
     if proj_high_y < np.inf:
         high_y = max(high_y, proj_high_y)
 
@@ -764,7 +821,10 @@ def plot_all_methods_metrics_4x(all_results_eps, all_results_noisy_y, true_f,
                 ax_dict['D'].text(first_finite_idx, high_y, r'$\infty$', color='k', 
                                   fontsize=10, ha='center', va='bottom')
         except: pass
-    ax_dict['D'].set_ylabel(r"$|f(x) + I_{-}(Ax - b) - f^\star|/|f^\star|$", fontsize=14)
+    if admm:
+        ax_dict['D'].set_ylabel(r"$|f(x) + I_{=0}(x - Ez) - f^\star|/|f^\star|$", fontsize=14)
+    else:
+        ax_dict['D'].set_ylabel(r"$|f(x) + I_{-}(Ax - b) - f^\star|/|f^\star|$", fontsize=14)
     ax_dict['D'].set_xlabel(r'$k$', fontsize=14)
     ax_dict['D'].set_yscale('log')
     ax_dict['D'].set_xlim(-(T-1)*0.05, (T-1) * 1.05)

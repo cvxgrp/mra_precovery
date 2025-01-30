@@ -68,7 +68,6 @@ def price_localization_primal_recovery(fun_agents, fun_obj_val, primal_var_size,
         if epoch % postprocessing == 0:
             mra_xk = mra.primal_recovery(lamb_k, Zs)
 
-
         # add new cutting planes to feasibility set of dual variable
         Polyhedron_A = np.concatenate([Polyhedron_A, (-A_constraints @ x_k + b_constraints).T], axis=0)
         Polyhedron_b = np.concatenate([Polyhedron_b, (-A_constraints @ x_k + b_constraints).T @ lamb_k], axis=0)
@@ -80,8 +79,8 @@ def price_localization_primal_recovery(fun_agents, fun_obj_val, primal_var_size,
             if logging.all_results['viol_primal_compl_mra_xk'][-1] - 1e-6 > logging.all_results['viol_primal_compl_xk'][-1]:
                 print(f"VIOLATION: {logging.all_results['viol_primal_compl_mra_xk'][-1] - 1e-6 - logging.all_results['viol_primal_compl_xk'][-1]}=")
         elif res_type == "primal":
-            if logging.all_results['viol_primal_mra_xk'][-1] - 1e-6 > logging.all_results['viol_compl_xk'][-1]:
-                print(f"VIOLATION: {logging.all_results['viol_primal_compl_mra_xk'][-1] - 1e-6 - logging.all_results['viol_primal_compl_xk'][-1]}=")
+            if logging.all_results['viol_primal_mra_xk'][-1] - 1e-6 > logging.all_results['viol_primal_xk'][-1]:
+                print(f"VIOLATION: {logging.all_results['viol_primal_mra_xk'][-1] - 1e-6 - logging.all_results['viol_primal_xk'][-1]}=")
         
         lamb_rel_diff = np.linalg.norm(lamb_k - lamb_prev) / np.linalg.norm(lamb_prev)
         terminate_status = lamb_rel_diff < eps_lamb or logging.all_results["viol_primal_compl_mra_xk"][-1] < eps_viol

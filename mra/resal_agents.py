@@ -13,7 +13,7 @@ from mra.config import *
 def centralized_solution_resal(A_all, C, d):
     """
     Solve
-        minimize      \sum_i f_i(x_i) = \sum_i -\geo_mean(A_i x_i)
+        minimize      \sum_i f_i(x_i) = \sum_i -\geo_mean(A_i x_i) + I(1^T x_i <= 1)
         subject to    Cx \eq d
     """
     m, n = A_all[0].shape
@@ -110,7 +110,7 @@ def resal_query_multiple_actions_noisy_prices(lamb, i, A, percent=1e-2, K=1):
     return np.concatenate(xs, axis=1)
 
 
-def resal_obj_value(x, A_all, idx=0):
+def resal_obj_value(x, A_all, idx=0, normalized=True):
     f = 0
     num_resources = A_all[0].shape[1]
     num_agents = len(A_all)
@@ -120,7 +120,7 @@ def resal_obj_value(x, A_all, idx=0):
             xi = x[i][:, idx:idx+1]
         else:
             xi = x[i*num_resources:(i+1)*num_resources][:, idx:idx+1]
-        if (xi + 1e-8 < 0).any() or (np.sum(xi) - 1e-6 >= 1):
+        if  (xi + 1e-8 < 0).any() or (normalized and (np.sum(xi) - 1e-6 >= 1)):
             # print(i, (xi + 1e-8 < 0).any(), np.sum(xi) )
             return np.inf
         xi = np.maximum(xi, 0)

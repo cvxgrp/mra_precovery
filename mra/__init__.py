@@ -8,7 +8,7 @@ from mra.set_centers_cvxpy import *
 from mra.utils import *
 from mra.config import *
 from mra.localization_prim_rec import *
-from mra.prox_ra_agents import *
+from mra.prox_resal_agents import *
 from mra.prox_lp_agents import *
 from mra.admm import *
 from mra.ot_agents import *
