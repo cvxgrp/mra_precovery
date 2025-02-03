@@ -7,7 +7,7 @@ from mra.config import *
 
     
 
-def package_agent_query(lamb, i, num_fcs, econ, integer=True, return_obj=False, eps=0):
+def package_agent_query(lamb, i, num_fcs, econ, integer=True, return_obj=False):
     # return x_i s.t. -\lambda \in \partial p_i(x_i))
     assert lamb.shape == (num_fcs,), print(lamb.shape, (num_fcs,))
     if integer:
@@ -16,8 +16,6 @@ def package_agent_query(lamb, i, num_fcs, econ, integer=True, return_obj=False, 
         yi = cp.Variable(num_fcs)
     xi = cp.Variable(num_fcs, nonneg=True)
     pi = -econ['profit_ij'][i] @ yi 
-    if eps > 0:
-        pi += eps * cp.sum_squares(xi)
     constraints = [econ['p_cap'][i] * yi <= xi, 
                    cp.sum(yi) <= 1,
                    yi >= 0]
@@ -37,17 +35,14 @@ def package_agent_query(lamb, i, num_fcs, econ, integer=True, return_obj=False, 
         return xi.value
     
 
-def package_agent_query_multiple_actions(lamb, i, num_fcs, econ, integer=True, eps=0, 
+def package_agent_query_multiple_actions(lamb, i, num_fcs, econ, integer=True,  
                                          eps_sublevel=1e-1, K=1, return_best=True):
     # return x_i s.t. -\lambda \in \partial p_i(x_i))
     assert lamb.shape == (num_fcs,)
     if not integer:
-        return cvx_package_agent_query_multiple_actions(lamb, i, num_fcs, econ, integer=True, eps=0,
+        return cvx_package_agent_query_multiple_actions(lamb, i, num_fcs, econ, integer=True,
                                           eps_sublevel=eps_sublevel, K=K, return_best=return_best)
-    xis = econ['p_cap'][i] * np.ones(num_fcs)
     pi = -econ['profit_ij'][i] + econ['p_cap'][i] * lamb
-    if eps > 0:
-        pi += eps * np.square(xis) 
     min_idx = np.argmin(pi)
     p_star = min(0, pi[min_idx])
     if p_star == 0:
@@ -58,7 +53,6 @@ def package_agent_query_multiple_actions(lamb, i, num_fcs, econ, integer=True, e
     idx = np.where(pi <= p_star + np.abs(eps_sublevel * p_star) + 1e-8)[0]
     idx_sort = np.argsort(pi[idx])
     idx = idx[idx_sort][:K]
-    # if idx.size >= 2: print(idx.size)
     # (num_fcs, K)
     xs = (econ['p_cap'][i] * np.eye(num_fcs))[:, idx]
     if idx.size < K:
@@ -67,28 +61,27 @@ def package_agent_query_multiple_actions(lamb, i, num_fcs, econ, integer=True, e
     return xs 
     
 
-def ncvx_best_action_package_agent(lamb, i, econ, num_fcs, K, eps):
+def ncvx_best_action_package_agent(lamb, i, econ, num_fcs):
     xis = econ['p_cap'][i] * np.ones(num_fcs)
-    pi = -econ['profit_ij'][i] + econ['p_cap'][i] * lamb
-    if eps > 0:
-        pi += eps * np.square(xis) 
+    pi = -econ['profit_ij'][i] + econ['p_cap'][i] * lamb 
     min_idx = np.argmin(pi)
     p_star = min(0, pi[min_idx])
     if p_star == 0:
-        return np.zeros((num_fcs, K))
+        return np.zeros((num_fcs))
     x_best = np.zeros(num_fcs)
-    x_best[min_idx] = econ['p_cap'][i]
+    x_best[min_idx] = econ['p_cap'][i] 
     return x_best
 
 
-def package_agent_query_multiple_actions_noisy_prices(lamb, i, num_fcs, econ, integer=True, eps=0, 
+def package_agent_query_multiple_actions_noisy_prices(lamb, i, num_fcs, econ, integer=True, 
                                          percent=1e-1, K=1, return_best=True):
     # return x_i s.t. -\lambda \in \partial p_i(x_i))
     assert lamb.shape == (num_fcs,)
     if not integer:
-        return cvx_package_agent_query_multiple_actions_noisy_prices(lamb, i, num_fcs, econ, eps=0, percent=percent, K=K, return_best=return_best)
+        return cvx_package_agent_query_multiple_actions_noisy_prices(lamb, i, num_fcs, econ,  
+                                                                     percent=percent, K=K, return_best=return_best)
     
-    x_best = ncvx_best_action_package_agent(lamb, i, econ, num_fcs, K, eps)
+    x_best = ncvx_best_action_package_agent(lamb, i, econ, num_fcs)
     if K == 1:
         return x_best
     else:
@@ -100,23 +93,21 @@ def package_agent_query_multiple_actions_noisy_prices(lamb, i, num_fcs, econ, in
         assert  (lamb <= u[:,0]).all() and (lamb >= l[:,0]).all()
         noisy_yi = l + np.multiply(np.random.rand(lamb.shape[0], K), u - l)
         for t in range(1, K):
-            xs[:, t] = ncvx_best_action_package_agent(noisy_yi[:, t], i, econ, num_fcs, K, eps)
+            xs[:, t] = ncvx_best_action_package_agent(noisy_yi[:, t], i, econ, num_fcs)
 
     return xs 
 
 
-def cvx_package_agent_query_multiple_actions(lamb, i, num_fcs, econ, integer=False, eps=0,
+def cvx_package_agent_query_multiple_actions(lamb, i, num_fcs, econ, integer=False, 
                                           eps_sublevel=1e-1, K=1, return_best=True):
     # return x_i s.t. -\lambda \in \partial p_i(x_i))
     # return K noisy actions s.t. x is on the boundary of 
     # eps-sublevel set of (p_i(x_i) + lambda^T x_i)
-    x_best, p_star = package_agent_query(lamb, i, num_fcs, econ, integer=False, return_obj=True, eps=eps)
+    x_best, p_star = package_agent_query(lamb, i, num_fcs, econ, integer=False, return_obj=True)
 
     yi = cp.Variable(num_fcs)
     xi = cp.Variable(num_fcs, nonneg=True)
     pi = -econ['profit_ij'][i] @ yi 
-    if eps > 0:
-        pi += eps * cp.sum_squares(xi)
     obj = cp.sum(pi + xi.T @ lamb)
     constraints = [econ['p_cap'][i] * yi <= xi, 
                    cp.sum(yi) <= 1,
@@ -146,15 +137,13 @@ def cvx_package_agent_query_multiple_actions(lamb, i, num_fcs, econ, integer=Fal
     return xs
 
 
-def package_agent_obj(xi, i, num_fcs, econ, integer=False, return_prob=False, eps=0):
+def package_agent_obj(xi, i, num_fcs, econ, integer=False, return_prob=False):
     # return p_i(x_i)
     if integer:
         yi = cp.Variable(num_fcs, integer=True)
     else:
         yi = cp.Variable(num_fcs)
-    pi = -econ['profit_ij'][i] @ yi
-    if eps > 0:
-        pi += eps * cp.sum_squares(xi)
+    pi = -econ['profit_ij'][i] @ yi 
     constraints = [econ['p_cap'][i] * yi <= xi, 
                    cp.sum(yi) <= 1,
                    yi >= 0]
@@ -240,7 +229,8 @@ def assignment_problem_obj_val(x_k, num_packages, num_fcs, econ, integer=False):
     return obj
 
 
-def assignment_problem_milp_solution(num_packages, num_fcs, econ, integer=False, solver=cp.MOSEK, eps=0, verbose=False, mipgap=0.01, timelimit=100):
+def assignment_problem_milp_solution(num_packages, num_fcs, econ, integer=False, solver=cp.MOSEK,  
+                                     verbose=False, mipgap=0.01, timelimit=100):
     x_p = cp.Variable((num_packages, num_fcs),) 
     x_f = cp.Variable(num_fcs, nonneg=True) 
 
@@ -248,7 +238,7 @@ def assignment_problem_milp_solution(num_packages, num_fcs, econ, integer=False,
     constraints = [ cp.sum(x_p, axis=0) <= x_f ] 
     for i in range(num_packages):
         xi = x_p[i]
-        pi, constraints_i = package_agent_obj(xi, i, num_fcs, econ, return_prob=True, integer=integer, eps=eps)
+        pi, constraints_i = package_agent_obj(xi, i, num_fcs, econ, return_prob=True, integer=integer)
         obj += pi
         constraints += constraints_i
         
@@ -272,13 +262,13 @@ def assignment_problem_milp_solution(num_packages, num_fcs, econ, integer=False,
     return x_p.value, x_f.value, obj.value, true_lamb, prob
 
 
-def assignment_problem_milp_solution_lamb(lamb, num_packages, num_fcs, econ, integer=True, eps=0):
+def assignment_problem_milp_solution_lamb(lamb, num_packages, num_fcs, econ, integer=True):
     # minimize Lagrangian L(x, lamb) = f(x) + lamb^T(Ax - b) wrt x
     obj = 0
     constraints = []
     for i in range(num_packages):
         xi = cp.Variable(num_fcs) 
-        pi, constraints_i = package_agent_obj(xi, i, num_fcs, econ, return_prob=True, integer=integer, eps=eps)
+        pi, constraints_i = package_agent_obj(xi, i, num_fcs, econ, return_prob=True, integer=integer)
         obj += pi + lamb.T @ xi
         constraints += constraints_i
         
@@ -293,7 +283,7 @@ def assignment_problem_milp_solution_lamb(lamb, num_packages, num_fcs, econ, int
     return obj.value
 
 
-def assignment_problem_centralized_milp_solution(num_packages, num_fcs, econ, integer=True, eps=0):
+def assignment_problem_centralized_milp_solution(num_packages, num_fcs, econ, integer=True):
     if integer:
         y_p = cp.Variable((num_packages, num_fcs), integer=True)
     else:
@@ -306,9 +296,7 @@ def assignment_problem_centralized_milp_solution(num_packages, num_fcs, econ, in
                     cp.sum(y_p, axis=1) <= np.ones(num_packages), # send one package per package agent
                     y_p >= 0] 
     for i in range(num_packages):
-        obj -= econ['profit_ij'][i] @ y_p[i] 
-        if eps > 0:
-            obj -= - eps * cp.sum_squares(x_p[i])
+        obj -= econ['profit_ij'][i] @ y_p[i]  
 
     for j in range(num_fcs):
         obj += econ['fc_cap_a'][j] * cp.square(cp.pos(y_f[j] - econ['fc_min_cap'][j]))
@@ -337,16 +325,14 @@ def generate_data_assignment_problem(num_packages, num_fcs):
     return econ
 
 
-def cvx_package_agent_query_multiple_actions_noisy_prices(lamb, i, num_fcs, econ, eps=0,
+def cvx_package_agent_query_multiple_actions_noisy_prices(lamb, i, num_fcs, econ,
                                           percent=1e-1, K=1, return_best=True):
     # introduce noise in prices proportional to each price
     # return K noisy actions (f_i(x_i) + (lambda - delta)^T x_i) 
     zi = cp.Variable(num_fcs)
     xi = cp.Variable(num_fcs, nonneg=True)
     pi = -econ['profit_ij'][i] @ zi 
-    new_yi = cp.Parameter(num_fcs)
-    if eps > 0:
-        pi += eps * cp.sum_squares(xi)
+    new_yi = cp.Parameter(num_fcs) 
     constraints = [econ['p_cap'][i] * zi <= xi, 
                    cp.sum(zi) <= 1,
                    zi >= 0]

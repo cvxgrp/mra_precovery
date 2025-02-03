@@ -790,8 +790,10 @@ def plot_all_methods_metrics_4x(all_results_eps, all_results_noisy_y, true_f,
                 xk_subopt[np.isfinite(xk_subopt)].max(),
                 paverage_subopt[np.isfinite(paverage_subopt)].max(),
                 )
-    proj_high_y = proj_subopt[np.isfinite(proj_subopt)].max()
-    if proj_high_y < np.inf:
+
+    proj_high_y = proj_subopt[np.isfinite(proj_subopt)]
+    if proj_high_y.size > 0:
+        proj_high_y = proj_subopt.max()
         high_y = max(high_y, proj_high_y)
 
     labels = ["$x^k$", 

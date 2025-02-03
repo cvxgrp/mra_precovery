@@ -144,7 +144,7 @@ class LogMetrics:
         metric_funcs = {"lagr": lambda x, point: f_vals[point] + (lamb_k.T @ (self.A_constraints @ x - self.b_constraints)).sum()}
 
         metric_funcs["viol_primal_compl"] = lambda x, point: primal_compl_slackness_viol(x, lamb_k, A_ineq=self.A_ineq, b_ineq=self.b_ineq, 
-                                                                A_eq=self.A_eq, b_eq=self.b_eq), 
+                                                                A_eq=self.A_eq, b_eq=self.b_eq) 
         metric_funcs["viol_primal"] = lambda x, point: primal_res_viol(x, A_ineq=self.A_ineq, b_ineq=self.b_ineq, 
                                                                 A_eq=self.A_eq, b_eq=self.b_eq)
 
