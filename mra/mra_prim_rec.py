@@ -13,7 +13,7 @@ from mra.utils import *
 class MRA_Primal_Recovery:
     def __init__(self, fun_agents, primal_var_size, history, res_type="primal_compl_slack",
                  A_ineq=None, b_ineq=None, A_eq=None, b_eq=None, E=None, relaxed=True, 
-                 inv_EtE_Et=None, rho=None):
+                 inv_EtE_Et=None, rho=None, mra_milp="custom", timelimit=300):
         self.fun_agents = fun_agents
         self.N = len(fun_agents)
         self.primal_var_size = primal_var_size
@@ -25,6 +25,11 @@ class MRA_Primal_Recovery:
         self.E = E
         self.inv_EtE_Et = inv_EtE_Et
         self.rho = rho
+        self.mra_milp = mra_milp
+        if not self.relaxed and self.mra_milp == "gurobi":
+            import gurobipy
+            self.env = gurobipy.Env()
+            self.env.setParam('TimeLimit', timelimit)
         
 
     def query(self, lamb_k, K, epoch):
@@ -64,8 +69,13 @@ class MRA_Primal_Recovery:
         if self.relaxed:
             u_best = u_relaxed
         else:
-            best, greed_ref_obj = se.greedy_polishing(u_relaxed, Zs, self.A_ineq, self.b_ineq, self.N, 
-                                                      Zs[0].shape[1], lamb=lamb_k, num_samples=15, debug=True)
+            if self.mra_milp == "greedy":
+                best, greed_ref_obj = se.greedy_polishing(u_relaxed, Zs, self.A_ineq, self.b_ineq, self.N, 
+                                                        Zs[0].shape[1], lamb=lamb_k, num_samples=15, debug=True)
+            elif self.mra_milp == "gurobi":
+                best = se.milp_mar_residuals(Zs, lamb_k, A_ineq=self.A_ineq, b_ineq=self.b_ineq, 
+                                                           A_eq=self.A_eq, b_eq=self.b_eq, res_type=self.res_type,
+                                                           env=self.env)
             u_best = best[1]
         last_idx = 0
         for i in range(self.N):

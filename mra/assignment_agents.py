@@ -255,7 +255,7 @@ def assignment_problem_milp_solution(num_packages, num_fcs, econ, integer=False,
         env.setParam('TimeLimit', timelimit)
         env.setParam('MIPGap', mipgap)
 
-        prob.solve(verbose=verbose, solver=solver, env=env)
+        prob.solve(verbose=verbose, solver=cp.GUROBI, env=env)
     else:
         prob.solve(verbose=verbose, solver=solver)
     true_lamb = constraints[0].dual_value

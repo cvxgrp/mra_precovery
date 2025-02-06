@@ -13,13 +13,13 @@ from mra.mra_prim_rec import *
 
 def price_localization_primal_recovery(fun_agents, fun_obj_val, primal_var_size, A_ineq=None, b_ineq=None, A_eq=None, b_eq=None, price_max=None, price_min=None, alpha = 1, 
                                        relaxed=True, postprocessing=1, K_i=10, num_iters = 100, method="accpm_l2", true_f=None, eps_viol=1e-8,
-                                       print_freq=1, eps_lamb=1e-6, res_type="primal_compl_slack", history=1):
+                                       print_freq=1, eps_lamb=1e-6, res_type="primal_compl_slack", history=1, mra_milp="greedy"):
     
     assert res_type in ["primal_compl_slack", "primal"]
     A_constraints, b_constraints, dual_var_size = aggregate_constraints(A_ineq=A_ineq, b_ineq=b_ineq, A_eq=A_eq, b_eq=b_eq)
 
     mra = MRA_Primal_Recovery(fun_agents, primal_var_size, history, res_type=res_type,
-                 A_ineq=A_ineq, b_ineq=b_ineq, A_eq=A_eq, b_eq=b_eq, relaxed=relaxed)
+                 A_ineq=A_ineq, b_ineq=b_ineq, A_eq=A_eq, b_eq=b_eq, relaxed=relaxed, mra_milp=mra_milp)
     N = len(fun_agents)
     logging = LogMetrics(fun_obj_val, A_ineq=A_ineq, b_ineq=b_ineq, A_eq=A_eq, b_eq=b_eq,
                          A_constraints=A_constraints, b_constraints=b_constraints, true_f=true_f)
@@ -88,9 +88,14 @@ def price_localization_primal_recovery(fun_agents, fun_obj_val, primal_var_size,
 
         lamb_prev = lamb_k
         if epoch % print_freq == 0 or epoch == num_iters-1 or terminate_status:
-            print(f"{epoch=}, f_subopt_xk={logging.all_results['subopt_xk'][-1]:.4E}, ", 
-                  f"f_subopt_mra={logging.all_results['subopt_mra_xk'][-1]:.4E}, ", 
-                  f"viol_xk={logging.all_results['viol_primal_compl_xk'][-1]:.4E}, viol_mra={logging.all_results['viol_primal_compl_mra_xk'][-1]:.4E}, {lamb_rel_diff=:.4E}")
+            if res_type == "primal_compl_slack":
+                print(f"{epoch=}, f_subopt_xk={logging.all_results['subopt_xk'][-1]:.4E}, ", 
+                    f"f_subopt_mra={logging.all_results['subopt_mra_xk'][-1]:.4E}, ", 
+                    f"viol_xk={logging.all_results['viol_primal_compl_xk'][-1]:.4E}, viol_mra={logging.all_results['viol_primal_compl_mra_xk'][-1]:.4E}, {lamb_rel_diff=:.4E}")
+            elif res_type == "primal":
+                print(f"{epoch=}, f_subopt_xk={logging.all_results['subopt_xk'][-1]:.4E}, ", 
+                    f"f_subopt_mra={logging.all_results['subopt_mra_xk'][-1]:.4E}, ", 
+                    f"viol_xk={logging.all_results['viol_primal_xk'][-1]:.4E}, viol_mra={logging.all_results['viol_primal_mra_xk'][-1]:.4E}, {lamb_rel_diff=:.4E}")
         
             if terminate_status and epoch >= 1:
                 print(f"terminate with {lamb_rel_diff=}")
