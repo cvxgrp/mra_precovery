@@ -71,7 +71,7 @@ class MRA_Primal_Recovery:
         else:
             if self.mra_milp == "greedy":
                 best, greed_ref_obj = se.greedy_polishing(u_relaxed, Zs, self.A_ineq, self.b_ineq, self.N, 
-                                                        Zs[0].shape[1], lamb=lamb_k, num_samples=15, debug=True)
+                                                        Zs[0].shape[1], lamb=lamb_k, num_samples=15, debug=False)
             elif self.mra_milp == "gurobi":
                 best = se.milp_mar_residuals(Zs, lamb_k, A_ineq=self.A_ineq, b_ineq=self.b_ineq, 
                                                            A_eq=self.A_eq, b_eq=self.b_eq, res_type=self.res_type,
