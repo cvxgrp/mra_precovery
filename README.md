@@ -60,12 +60,12 @@ flow of MRA.
 
 Usage:
 ---------
-    ```python
-    import mra
-    fun_agents, primal_var_size, A_ineq, b_ineq = ...
-    MRA = mra.MRA_Primal_Recovery(fun_agents, primal_var_size,
-                                  A_ineq=A_ineq, b_ineq=b_ineq)
-    x_k, Zs = MRA.query(lamb_k, K=10, epoch=0)
-    bar_xk = MRA.primal_recovery(lamb_k, Zs)
-    ```
+```python
+import mra
+fun_agents, primal_var_size, A_ineq, b_ineq = ...
+MRA = mra.MRA_Primal_Recovery(fun_agents, primal_var_size,
+                                A_ineq=A_ineq, b_ineq=b_ineq)
+x_k, Zs = MRA.query(lamb_k, K=10, epoch=0)
+bar_xk = MRA.primal_recovery(lamb_k, Zs)
+```
 
