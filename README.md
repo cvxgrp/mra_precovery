@@ -3,7 +3,7 @@ Multiple-response agents: Fast, feasible, approximate primal recovery
 for dual optimization methods
 =========================================
 
-This repository accompanies the paper ["Multiple-Response Agents: Fast, Feasible, Approximate Primal Recovery for Dual Optimization Methods"](XXX).
+This repository accompanies the paper ["Multiple-Response Agents: Fast, Feasible, Approximate Primal Recovery for Dual Optimization Methods"](https://arxiv.org/abs/2503.12221).
 
 The `mra` package implements multiple-response agents (MRA) method for primal variable
 recovery in dual optimization methods. 
