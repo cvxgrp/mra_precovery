@@ -34,6 +34,8 @@ def dual_proj_subgradient(fun_agents, fun_obj_val, primal_var_size, func_alpha_k
     paver_xk = np.zeros((primal_var_size, 1))
 
     x_k = np.zeros((primal_var_size, 1))
+    b_norm = (np.linalg.norm(b_ineq)**2 if b_ineq is not None else 0 + np.linalg.norm(b_eq)**2 if b_eq is not None else 0)**0.5
+    rel_eps_viol = eps_viol * b_norm if b_norm > 0 else eps_viol
 
     A_svd = np.linalg.svd(A_constraints, full_matrices=False)
     sum_coeffs = 0
@@ -63,7 +65,7 @@ def dual_proj_subgradient(fun_agents, fun_obj_val, primal_var_size, func_alpha_k
         
 
         lamb_rel_diff = np.linalg.norm(lamb_k - lamb_prev) / np.linalg.norm(lamb_prev)
-        terminate_status = epoch >= 1 and lamb_rel_diff < eps_lamb or logging.all_results["viol_primal_compl_mra_xk"][-1] < eps_viol
+        terminate_status = epoch >= 1 and lamb_rel_diff < eps_lamb or logging.all_results["viol_primal_compl_mra_xk"][-1] < rel_eps_viol
         logging.all_results['prices_deltas'] += [lamb_rel_diff]
 
         lamb_prev = lamb_k
@@ -108,6 +110,8 @@ def dual_subgrad_with_averaging(fun_agents, fun_obj_val, primal_var_size, func_a
     paver_xk = np.zeros((primal_var_size, 1))
 
     x_k = np.zeros((primal_var_size, 1))
+    b_norm = (np.linalg.norm(b_ineq)**2 if b_ineq is not None else 0 + np.linalg.norm(b_eq)**2 if b_eq is not None else 0)**0.5
+    rel_eps_viol = eps_viol * b_norm if b_norm > 0 else eps_viol
 
     A_svd = np.linalg.svd(A_constraints, full_matrices=False)
     sum_coeffs = 0
@@ -134,7 +138,7 @@ def dual_subgrad_with_averaging(fun_agents, fun_obj_val, primal_var_size, func_a
                 print(f"VIOLATION: {logging.all_results['viol_primal_compl_mra_xk'][-1] - 1e-6 - logging.all_results['viol_primal_compl_xk'][-1]}=")
 
         lamb_rel_diff = np.linalg.norm(lamb_k - lamb_prev) / np.linalg.norm(lamb_prev)
-        terminate_status = epoch >= 1 and lamb_rel_diff < eps_lamb or logging.all_results["viol_primal_compl_mra_xk"][-1] < eps_viol
+        terminate_status = epoch >= 1 and lamb_rel_diff < eps_lamb or logging.all_results["viol_primal_compl_mra_xk"][-1] < rel_eps_viol
         logging.all_results['prices_deltas'] += [lamb_rel_diff]
 
         lamb_prev = lamb_k

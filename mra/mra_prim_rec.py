@@ -150,6 +150,7 @@ class LogMetrics:
 
 
     def record(self, lamb_k=None, x_k=None, mra_xk=None, paver_xk=None, proj_xk=None):
+        # unnormalized primal and primal/complementary residuals
         f_vals = {}
         metric_funcs = {"lagr": lambda x, point: f_vals[point] + (lamb_k.T @ (self.A_constraints @ x - self.b_constraints)).sum()}
 

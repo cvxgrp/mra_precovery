@@ -514,9 +514,9 @@ def subopt_of_best_feas_point(all_points, true_f, b_norm, eps_feas = 1e-6):
     return res[1:]
 
 
-def subopt_of_best_feas_point_only(all_points, true_f, b_norm, eps_feas = 1e-6):
+def subopt_of_best_feas_point_only(all_points, true_f, b_norm, eps_feas=1e-6):
     fs, rs = all_points["f_mra_xk"], all_points["viol_primal_mra_xk"]
-    return subopt_of_best_feas_point_base(fs, rs, true_f, b_norm, eps_feas = 1e-6)
+    return subopt_of_best_feas_point_base(fs, rs, true_f, b_norm, eps_feas=eps_feas)
 
 
 def subopt_of_best_feas_point_base(fs, rs, true_f, b_norm, eps_feas=1e-6):
@@ -537,95 +537,7 @@ def subopt_of_best_feas_point_base(fs, rs, true_f, b_norm, eps_feas=1e-6):
 
 
 def plot_N_all_metrics_4x(all_results_eps, all_results_noisy_y, eps_sublevel, true_f, 
-                                b_norm0, num_points, filename=None, T=None, folder="../plots/"):
-    cmp = ["red", "tomato", "blue", "royalblue"]
-    lstyle = ["-", "--"]
-    b_norm = 1 if b_norm0 == 0 else b_norm0
-    mosaic = """
-    AABB
-    CCDD
-    """
-
-    fig, ax_dict = plt.subplot_mosaic(mosaic, figsize=(12, 10), sharex=False, sharey=False)
-
-    for i, K_i in enumerate(num_points):
-        ax_dict['A'].plot((np.abs(np.array(all_results_eps[K_i]["f_mra_xk"]) - true_f)) / np.abs(true_f),
-                        color=cmp[i], label=rf"$\epsilon_v={int(eps_sublevel * 100)}\%, ~N={K_i}$",
-                        alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=1)
-        ax_dict['A'].plot((np.abs(np.array(all_results_noisy_y[K_i]["f_mra_xk"]) - true_f)) / np.abs(true_f),
-                        color=cmp[2 + i], label=rf"$\epsilon_p={int(eps_sublevel * 100)}\%, ~N={K_i}$",
-                        alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=1)
-    ax_dict['A'].set_ylabel(r"$|f(x) - f^\star|/|f^\star|$", fontsize=14)
-    ax_dict['A'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['A'].set_yscale('log')
-
-    for i, K_i in enumerate(num_points):
-        ax_dict['B'].plot(np.array(all_results_eps[K_i]["viol_primal_mra_xk"]) / b_norm,
-                        color=cmp[i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=1)
-        ax_dict['B'].plot(np.array(all_results_noisy_y[K_i]["viol_primal_mra_xk"]) / b_norm,
-                        color=cmp[2 + i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=1)
-    if b_norm0 > 0:
-        ax_dict['B'].set_ylabel(r'$r_p/\|b\|$', fontsize=14)
-    else:
-        ax_dict['B'].set_ylabel(r'$r_p$', fontsize=14)
-    ax_dict['B'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['B'].set_yscale('log')
-
-
-    for i, K_i in enumerate(num_points):
-        ax_dict['C'].plot(np.array(all_results_eps[K_i]["viol_primal_compl_mra_xk"]) / b_norm,
-                        color=cmp[i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=1)
-        ax_dict['C'].plot(np.array(all_results_noisy_y[K_i]["viol_primal_compl_mra_xk"]) / b_norm,
-                        color=cmp[2 + i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=1)
-    if b_norm0 > 0:
-        ax_dict['C'].set_ylabel(r'$(r_p+r_c)/\|b\|$', fontsize=14)
-    else:
-        ax_dict['C'].set_ylabel(r'$(r_p+r_c)$', fontsize=14)
-    ax_dict['C'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['C'].set_yscale('log')
-
-    eps_subopt = (np.abs(np.array(all_results_eps[K_i]["f_mra_xk"]) - true_f)) / np.abs(true_f)
-    noisy_y_subopt = (np.abs(np.array(all_results_noisy_y[K_i]["f_mra_xk"]) - true_f)) / np.abs(true_f)
-    high_y = max(eps_subopt[np.isfinite(eps_subopt)].max(), 
-                 noisy_y_subopt[np.isfinite(noisy_y_subopt)].max())
-    T = 0
-    for i, K_i in enumerate(num_points):
-        xs = np.array(subopt_of_best_feas_point_only(all_results_eps[K_i], true_f, b_norm))
-        T = max(T, xs.size)
-        ax_dict['D'].plot(xs, color=cmp[i], label=rf"$\epsilon_v={int(eps_sublevel * 100)}\%, ~N={K_i}$",
-                        alpha=0.9, lw=0.9, ls=lstyle[i])
-        try:
-            first_finite_idx = np.where(xs < np.inf)[0][0]
-            if first_finite_idx >= 1:
-                ax_dict['D'].vlines(first_finite_idx, ymin=xs[first_finite_idx], ymax=high_y, colors=cmp[i], alpha=0.9, lw=0.9, ls=lstyle[i])
-                ax_dict['D'].text(first_finite_idx, high_y, r'$\infty$', color='k', fontsize=10, ha='center', va='bottom')
-        except: pass 
-        xs = np.array(subopt_of_best_feas_point_only(all_results_noisy_y[K_i], true_f, b_norm))
-        T = max(T, xs.size)
-        ax_dict['D'].plot(xs, color=cmp[2 + i], label=rf"$\epsilon_p={int(eps_sublevel * 100)}\%, ~N={K_i}$",
-                        alpha=0.9, lw=0.9, ls=lstyle[i])
-        try:
-            first_finite_idx = np.where(xs < np.inf)[0][0]
-            if first_finite_idx >= 1:
-                ax_dict['D'].vlines(first_finite_idx, ymin=xs[first_finite_idx], ymax=high_y, colors=cmp[2+i], alpha=0.9, lw=0.9, ls=lstyle[i])
-                ax_dict['D'].text(first_finite_idx, high_y, r'$\infty$', color='k', fontsize=10, ha='center', va='bottom')
-        except: pass
-    ax_dict['D'].set_ylabel(r"$|f(x) + I_{-}(Ax - b) - f^\star|/|f^\star|$", fontsize=14)
-    ax_dict['D'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['D'].set_yscale('log')
-    ax_dict['D'].set_xlim(-(T-1)*0.05, (T-1) * 1.05)
-
-
-    handles, labels = ax_dict['A'].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper center', ncol=4, bbox_to_anchor=(0.5, 1.0), fontsize=14)
-
-    plt.tight_layout(rect=[0, 0, 1, 0.93])
-    if filename is not None:
-        plt.savefig(folder + "%s_all_metrics_4x.pdf" % filename, bbox_inches="tight")
-
-
-def plot_eps_all_metrics_4x(all_results_eps, all_results_noisy_y, K_i, true_f, 
-                                b_norm0, percents, filename=None, T=None, folder="../plots/"):
+    b_norm0, num_points, filename=None, T=None, folder="../plots/", star_size=20):
     cmp = ["red", "tomato", "blue", "royalblue"]
     lstyle = ["-", "--"]
     b_norm = 1 if b_norm0 == 0 else b_norm0
@@ -634,168 +546,201 @@ def plot_eps_all_metrics_4x(all_results_eps, all_results_noisy_y, K_i, true_f,
     CCDD
     """
     fig, ax_dict = plt.subplot_mosaic(mosaic, figsize=(12, 10), sharex=False, sharey=False)
-    for i, eps in enumerate(percents):
-        ax_dict['A'].plot((np.abs(np.array(all_results_eps[eps]["f_mra_xk"]) - true_f)) / np.abs(true_f),
-                        color=cmp[i], label=rf"$\epsilon_v={int(eps * 100)}\%, ~N={K_i}$",
-                        alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
-        ax_dict['A'].plot((np.abs(np.array(all_results_noisy_y[eps]["f_mra_xk"]) - true_f)) / np.abs(true_f),
-                        color=cmp[2 + i], label=rf"$\epsilon_p={int(eps * 100)}\%, ~N={K_i}$",
-                        alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
-    ax_dict['A'].set_ylabel(r"$|f(x) - f^\star|/|f^\star|$", fontsize=14)
-    ax_dict['A'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['A'].set_yscale('log')
+ 
+    metrics = [ 
+        ("f_mra_xk", 'A', r"$|f(x) + I_{-}(Ax - b) - f^\star|/|f^\star|$", True),
+        ("f_mra_xk", 'B', r"$|f(x) - f^\star|/|f^\star|$", True),
+        ("viol_primal_mra_xk", 'C', r'$r_p/\|b\|$' if b_norm0 > 0 else r'$r_p$', False),
+        ("viol_primal_compl_mra_xk", 'D', r'$(r_p+r_c)/\|b\|$' if b_norm0 > 0 else r'$(r_p+r_c)$', False),
+    ]
 
-    for i, eps in enumerate(percents):
-        ax_dict['B'].plot(np.array(all_results_eps[eps]["viol_primal_mra_xk"]) / b_norm,
-                        color=cmp[i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
-        ax_dict['B'].plot(np.array(all_results_noisy_y[eps]["viol_primal_mra_xk"]) / b_norm,
-                        color=cmp[2 + i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
-    if b_norm0 > 0:
-        ax_dict['B'].set_ylabel(r'$r_p/\|b\|$', fontsize=14)
-    else:
-        ax_dict['B'].set_ylabel(r'$r_p$', fontsize=14)
-    ax_dict['B'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['B'].set_yscale('log')
-
-    for i, eps in enumerate(percents):
-        ax_dict['C'].plot(np.array(all_results_eps[eps]["viol_primal_compl_mra_xk"]) / b_norm,
-                        color=cmp[i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
-        ax_dict['C'].plot(np.array(all_results_noisy_y[eps]["viol_primal_compl_mra_xk"]) / b_norm,
-                        color=cmp[2 + i], alpha=0.9, lw=0.5, ls=lstyle[i], marker='.', markersize=2)
-    if b_norm0 > 0:
-        ax_dict['C'].set_ylabel(r'$(r_p+r_c)/\|b\|$', fontsize=14)
-    else:
-        ax_dict['C'].set_ylabel(r'$(r_p+r_c)$', fontsize=14)
-    ax_dict['C'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['C'].set_yscale('log')
-        
-    eps_subopt = (np.abs(np.array(all_results_eps[eps]["f_mra_xk"]) - true_f)) / np.abs(true_f)
-    noisy_y_subopt = (np.abs(np.array(all_results_noisy_y[eps]["f_mra_xk"]) - true_f)) / np.abs(true_f)
-    high_y = max(eps_subopt[np.isfinite(eps_subopt)].max(), 
-                    noisy_y_subopt[np.isfinite(noisy_y_subopt)].max())
     T = 0
-    for i, eps in enumerate(percents):
-        xs = np.array(subopt_of_best_feas_point_only(all_results_eps[eps], true_f, b_norm),)
-        T = max(T, xs.size)
-        ax_dict['D'].plot(xs, color=cmp[i], label=rf"$\epsilon_v={int(eps * 100)}\%, ~N={K_i}$",
-                        alpha=0.9, lw=0.9, ls=lstyle[i])
-        try:
-            first_finite_idx = np.where(xs < np.inf)[0][0]
-            if first_finite_idx >= 1:
-                ax_dict['D'].vlines(first_finite_idx, ymin=xs[first_finite_idx], ymax=high_y, colors=cmp[i], alpha=0.9, lw=0.9, ls=lstyle[i])
-                ax_dict['D'].text(first_finite_idx, high_y, r'$\infty$', color='k', fontsize=10, ha='center', va='bottom')
-        except: pass 
-        xs = np.array(subopt_of_best_feas_point_only(all_results_noisy_y[eps], true_f, b_norm))
-        T = max(T, xs.size)
-        ax_dict['D'].plot(xs, color=cmp[2 + i], label=rf"$\epsilon_p={int(eps * 100)}\%, ~N={K_i}$",
-                        alpha=0.9, lw=0.9, ls=lstyle[i])
-        try:
-            first_finite_idx = np.where(xs < np.inf)[0][0]
-            if first_finite_idx >= 1:
-                ax_dict['D'].vlines(first_finite_idx, ymin=xs[first_finite_idx], ymax=high_y, colors=cmp[2+i], alpha=0.9, lw=0.9, ls=lstyle[i])
-                ax_dict['D'].text(first_finite_idx, high_y, r'$\infty$', color='k', fontsize=10, ha='center', va='bottom')
-        except: pass
-    ax_dict['D'].set_ylabel(r"$|f(x) + I_{-}(Ax - b) - f^\star|/|f^\star|$", fontsize=14)
-    ax_dict['D'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['D'].set_yscale('log')
-    ax_dict['D'].set_xlim(-(T-1)*0.05, (T-1) * 1.05)
+    for i, K_i in enumerate(num_points):
+        xs_eps = np.array(subopt_of_best_feas_point_only(all_results_eps[K_i], true_f, b_norm))
+        xs_noisy = np.array(subopt_of_best_feas_point_only(all_results_noisy_y[K_i], true_f, b_norm))
+        T = max(T, xs_eps.size, xs_noisy.size)
+    high_y = 0
+    for i, K_i in enumerate(num_points):
+        arrs = [np.array(all_results_eps[K_i]["f_mra_xk"]), np.array(all_results_noisy_y[K_i]["f_mra_xk"])]
+        subopts = [np.abs(a - true_f)/np.abs(true_f) for a in arrs]
+        high_y = max(high_y, *(s[np.isfinite(s)].max() for s in subopts if s.size > 0))
+
+    drop_indices_label = {}
+    for idx, (metric, panel, ylabel, is_obj_diff) in enumerate(metrics):
+        for i, K_i in enumerate(num_points):
+            
+            sources = [
+                (all_results_eps, cmp[i], lstyle[i], rf"$\epsilon_v={int(eps_sublevel*100)}\%,~N={K_i}$"),
+                (all_results_noisy_y, cmp[2+i], lstyle[i], rf"$\epsilon_p={int(eps_sublevel*100)}\%,~N={K_i}$"),
+            ]
+            for src, color, ls, label in sources:
+                arr = np.array(src[K_i][metric])
+                if is_obj_diff: arr = np.abs(arr - true_f)/np.abs(true_f)
+                else: arr = arr / b_norm 
+
+                if panel == 'A':
+                    xs = np.array(subopt_of_best_feas_point_only(src[K_i], true_f, b_norm))
+                    ax_dict[panel].plot(xs, color=color, label=label, alpha=0.9, lw=0.75, ls=ls)
+                    
+                    try:
+                        first_finite_idx = np.where(xs < np.inf)[0][0]
+                        indices_drop = np.concatenate([np.array([first_finite_idx]), first_finite_idx + np.where(np.diff(xs[first_finite_idx:]) < 0)[0] + 1], axis=0) 
+                        drop_indices_label[label] = indices_drop if first_finite_idx >= 1 else indices_drop[1:]
+                        if label in drop_indices_label and len(drop_indices_label[label]) >= 1:  
+                            ax_dict['A'].scatter(drop_indices_label[label], xs[drop_indices_label[label]], color=color, marker='*', s=star_size)
+                        
+                        if first_finite_idx >= 1:
+                            ax_dict[panel].vlines(first_finite_idx, ymin=xs[first_finite_idx], ymax=high_y, colors=color, alpha=0.9, lw=0.75, ls=ls)
+                            ax_dict[panel].text(first_finite_idx, high_y, r'$\infty$', color='k', fontsize=10, ha='center', va='bottom')
+                    except Exception:
+                        pass
+                else:
+                    ax_dict[panel].plot(arr, color=color, label=label, alpha=0.9, lw=0.75, ls=ls)
+                    if label in drop_indices_label and len(drop_indices_label[label]) >= 1:  
+                        ax_dict[panel].scatter(drop_indices_label[label], arr[drop_indices_label[label]], color=color, marker='*', s=star_size)
+            
+        ax_dict[panel].set_ylabel(ylabel, fontsize=14)
+        ax_dict[panel].set_xlabel(r'$k$', fontsize=14)
+        ax_dict[panel].set_yscale('log')
+        if panel == 'A':
+            ax_dict[panel].set_xlim(-(T-1)*0.05, (T-1)*1.05)
+
+    ymin_row1 = min(ax_dict['A'].get_ylim()[0], ax_dict['B'].get_ylim()[0])
+    ymax_row1 = max(ax_dict['A'].get_ylim()[1], ax_dict['B'].get_ylim()[1])
+    ax_dict['A'].set_ylim(ymin_row1, ymax_row1) 
+    ax_dict['B'].set_ylim(ymin_row1, ymax_row1)  
+
+    ymin_row2 = min(ax_dict['C'].get_ylim()[0], ax_dict['D'].get_ylim()[0])
+    ymax_row2 = max(ax_dict['C'].get_ylim()[1], ax_dict['D'].get_ylim()[1])
+    ax_dict['C'].set_ylim(ymin_row2, ymax_row2) 
+    ax_dict['D'].set_ylim(ymin_row2, ymax_row2) 
 
     handles, labels = ax_dict['A'].get_legend_handles_labels()
     fig.legend(handles, labels, loc='upper center', ncol=4, bbox_to_anchor=(0.5, 1.0), fontsize=14)
-
     plt.tight_layout(rect=[0, 0, 1, 0.93])
     if filename is not None:
-        plt.savefig(folder + "%s_all_metrics_4x.pdf" % filename, bbox_inches="tight")
+        plt.savefig(f"{folder}{filename}_all_metrics_4x.pdf", bbox_inches="tight")
+
+
+def plot_eps_all_metrics_4x(all_results_eps, all_results_noisy_y, K_i, true_f,
+                            b_norm0, percents, filename=None, folder="../plots/", star_size=20):
+
+    colors  = ["red", "tomato", "blue", "royalblue"]
+    lstyles = ["-", "--"]
+    b_norm  = 1 if b_norm0 == 0 else b_norm0
+
+    fig, ax = plt.subplot_mosaic("AABB\nCCDD", figsize=(12, 10))
+    variants = [
+        (all_results_eps,     r"$\epsilon_v$", 0),
+        (all_results_noisy_y, r"$\epsilon_p$", 2),
+    ]
+    metric = {
+        'A': lambda r: subopt_of_best_feas_point_only(r, true_f, b_norm),
+        'B': lambda r: np.abs((np.asarray(r["f_mra_xk"]) - true_f) / true_f),
+        'C': lambda r: np.asarray(r["viol_primal_mra_xk"])       / b_norm,
+        'D': lambda r: np.asarray(r["viol_primal_compl_mra_xk"]) / b_norm,
+    }
+    ylab = {
+        'A': r"$|f(x)+I_{-}(Ax-b)-f^\star|/|f^\star|$",
+        'B': r"$|f(x)-f^\star|/|f^\star|$",
+        'C': r"$r_p/\|b\|$"       if b_norm0 > 0 else r"$r_p$",
+        'D': r"$(r_p+r_c)/\|b\|$" if b_norm0 > 0 else r"$(r_p+r_c)$",
+    }
+
+    finite_max = lambda x: np.asarray(x, dtype=float)[np.isfinite(x)].max(initial=1.0)
+    eps0   = min(percents)
+    high_y = max(
+        finite_max(metric['A'](all_results_eps[eps0])),
+        finite_max(metric['A'](all_results_noisy_y[eps0]))
+    )
+
+    max_T = 0
+    drop_indices_label = {}
+    for j, eps in enumerate(percents):
+        ls = lstyles[j % len(lstyles)]
+        for res_dict, lbl_pref, c_off in variants:
+            series_A = np.asarray(metric['A'](res_dict[eps]))
+            max_T    = max(max_T, series_A.size)
+            color      = colors[c_off + j]
+            label    = rf"{lbl_pref}$={int(eps*100)}\%,\;N={K_i}$"
+
+            ax['A'].plot(series_A, color=color, ls=ls, lw=0.75, alpha=0.9, label=label)
+            finite_idx = np.flatnonzero(np.isfinite(series_A))
+            
+            if finite_idx.size:
+                first_finite_idx = finite_idx[0]
+                indices_drop = np.concatenate([np.array([first_finite_idx]), first_finite_idx + np.where(np.diff(series_A[first_finite_idx:]) < 0)[0] + 1], axis=0) 
+                drop_indices_label[label] = indices_drop if first_finite_idx >= 1 else indices_drop[1:]
+                if label in drop_indices_label and len(drop_indices_label[label]) >= 1:  
+                    ax['A'].scatter(drop_indices_label[label], series_A[drop_indices_label[label]], color=color, marker='*', s=star_size)
+                if finite_idx[0] >= 1:
+                    ax['A'].vlines(first_finite_idx, series_A[first_finite_idx], high_y,
+                                colors=color, ls=ls, lw=0.75, alpha=0.9)
+                    ax['A'].text(first_finite_idx, high_y, r'$\infty$', ha='center', va='bottom',
+                                fontsize=10, color='k')
+
+            for panel in 'BCD':
+                ax[panel].plot(metric[panel](res_dict[eps]), color=color,
+                             ls=ls, lw=0.75, alpha=0.9)
+                if label in drop_indices_label and len(drop_indices_label[label]) >= 1:  
+                    ax[panel].scatter(drop_indices_label[label], metric[panel](res_dict[eps])[drop_indices_label[label]], 
+                                      color=color, marker='*', s=star_size)
+
+    for panel in 'ABCD':
+        ax[panel].set_xlabel(r'$k$', fontsize=14)
+        ax[panel].set_ylabel(ylab[panel], fontsize=14)
+        ax[panel].set_yscale('log')
+    ax['A'].set_xlim(-(max_T-1)*0.05, (max_T-1)*1.05)
+
+    for pair in (('A', 'B'), ('C', 'D')):
+        lo = min(ax[pair[0]].get_ylim()[0], ax[pair[1]].get_ylim()[0])
+        hi = max(ax[pair[0]].get_ylim()[1], ax[pair[1]].get_ylim()[1])
+        for k in pair:
+            ax[k].set_ylim(lo, hi)
+
+    handles, labels = ax['A'].get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper center', ncol=4,
+               bbox_to_anchor=(0.5, 1.0), fontsize=14)
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
+
+    if filename:
+        plt.savefig(f"{folder}{filename}_all_metrics_4x.pdf", bbox_inches="tight")
 
 
 def plot_all_methods_metrics_4x(all_results_eps, all_results_noisy_y, true_f, 
                                 b_norm0, percent, eps_sublevel, filename=None, T=None, 
-                                folder="../plots/", admm=False):
+                                folder="../plots/", admm=False, star_size=20):
     b_norm = 1 if b_norm0 == 0 else b_norm0
     mosaic = """
     AABB
     CCDD
     """
-    if len(all_results_noisy_y["subopt_xk"]) > len(all_results_eps["subopt_xk"]):
-        all_res = all_results_noisy_y
-    else:
-        all_res = all_results_eps
+    all_res = (all_results_noisy_y if 
+               len(all_results_noisy_y["subopt_xk"]) > len(all_results_eps["subopt_xk"]) 
+               else all_results_eps)
     if T is None:
         T = len(all_res["viol_primal_mra_xk"])
-    T = min(T, max(len(all_results_eps["f_mra_xk"]), len(all_results_noisy_y["f_mra_xk"])))
+    T = min(T, max(len(all_results_eps["f_mra_xk"]), len(all_results_noisy_y["f_mra_xk"])) )
+
     cmp = ["orange", "red", "blue", "forestgreen", "violet"]
     fig, ax_dict = plt.subplot_mosaic(mosaic, figsize=(12, 10), sharex=False, sharey=False)
 
-    ax_dict['A'].plot((np.abs(np.array(all_res["f_xk"]) - true_f))[:T]/np.abs(true_f), 
-                color=cmp[0], label=r"$x^k$", alpha=0.9, lw=0.5, marker='.', markersize=2) 
-    ax_dict['A'].plot((np.abs(np.array(all_results_eps["f_mra_xk"])[:T] - true_f))/np.abs(true_f), 
-                color=cmp[1], label=rf"$\bar x^k, ~\epsilon_v={int(eps_sublevel*100)}\%$", 
-                alpha=0.9, lw=0.5, marker='.', markersize=2) 
-    ax_dict['A'].plot((np.abs(np.array(all_results_noisy_y["f_mra_xk"])[:T] - true_f))/np.abs(true_f), 
-                color=cmp[2], label=rf"$\bar x^k, ~\epsilon_p={int(percent*100)}\%$", 
-                alpha=0.9, lw=0.5, marker='.', markersize=2) 
-    ax_dict['A'].plot((np.abs(np.array(all_res["f_paver_xk"])[:T] - true_f))/np.abs(true_f), 
-                color=cmp[3], label=r"$\frac{1}{k}\sum_{j=1}^k x^j$", 
-                alpha=0.9, lw=0.5, marker='.', markersize=2) 
-    ax_dict['A'].plot((np.abs(np.array(all_res["f_proj_xk"])[:T] - true_f))/np.abs(true_f), 
-                color=cmp[4], label=r"$\Pi(x^k)$", 
-                alpha=0.9, lw=0.5, marker='.', markersize=2) 
-    ax_dict['A'].set_ylabel(r"$|f(x) - f^\star|/|f^\star|$", fontsize=14)
-    ax_dict['A'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['A'].set_yscale('log')
-
-    ax_dict['B'].plot(np.array(all_res["viol_primal_xk"])[:T]/ b_norm, 
-                    color=cmp[0], label=r"$x^k$", alpha=0.9, lw=0.5, marker='.', markersize=2)  
-    ax_dict['B'].plot(np.array(all_results_eps["viol_primal_mra_xk"])[:T] / b_norm, 
-                color=cmp[1], label=rf"$\bar x^k, ~\epsilon_v={int(eps_sublevel*100)}\%$", alpha=0.9, lw=0.5, marker='.', markersize=2) 
-    ax_dict['B'].plot(np.array(all_results_noisy_y["viol_primal_mra_xk"])[:T] / b_norm,
-                color=cmp[2], label=rf"$\bar x^k, ~\epsilon_p={int(percent*100)}\%$", alpha=0.9, lw=0.5, marker='.', markersize=2) 
-    ax_dict['B'].plot(np.array(all_res["viol_primal_paver_xk"])[:T] / b_norm, 
-                color=cmp[3], label=r"$\frac{1}{k}\sum_{j=1}^k x^j$", alpha=0.9, lw=0.5, marker='.', markersize=2) 
-
-    if b_norm0 > 0 and not admm:
-        ax_dict['B'].set_ylabel(r'$r_p/\|b\|$', fontsize=14)
-    else:
-        ax_dict['B'].set_ylabel(r'$r_p$', fontsize=14)
-    ax_dict['B'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['B'].set_yscale('log')
-
-
-    ax_dict['C'].plot(np.array(all_res["viol_primal_compl_xk"])[:T] / b_norm,  
-                    color=cmp[0], label=r"$x^k$", alpha=0.9, lw=0.5, marker='.', markersize=2)  
-    ax_dict['C'].plot(np.array(all_results_eps["viol_primal_compl_mra_xk"])[:T] / b_norm, 
-                    color=cmp[1], label=rf"$\bar x^k, ~\epsilon_v={int(eps_sublevel*100)}\%$", 
-                    alpha=0.9, lw=0.5, marker='.', markersize=2) 
-    ax_dict['C'].plot(np.array(all_results_noisy_y["viol_primal_compl_mra_xk"])[:T] / b_norm,
-                    color=cmp[2], label=rf"$\bar x^k, ~\epsilon_p={int(percent*100)}\%$", 
-                    alpha=0.9, lw=0.5, marker='.', markersize=2)
-    if admm:
-        ax_dict['C'].set_ylabel(r'$r_p+r_d$', fontsize=14)
-    else:
-        if b_norm0 > 0:
-            ax_dict['C'].set_ylabel(r'$(r_p+r_c)/\|b\|$', fontsize=14)
-        else:
-            ax_dict['C'].set_ylabel(r'$(r_p+r_c)$', fontsize=14)
-    ax_dict['C'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['C'].set_yscale('log')
 
     eps_subopt = (np.abs(np.array(all_results_eps["f_mra_xk"]) - true_f)) / np.abs(true_f)
     noisy_y_subopt = (np.abs(np.array(all_results_noisy_y["f_mra_xk"]) - true_f)) / np.abs(true_f)
     xk_subopt = (np.abs(np.array(all_res["f_xk"]) - true_f)) / np.abs(true_f)
     paverage_subopt = (np.abs(np.array(all_res["f_paver_xk"]) - true_f)) / np.abs(true_f)
     proj_subopt = (np.abs(np.array(all_res["f_proj_xk"]) - true_f)) / np.abs(true_f)
-
     high_y = max(eps_subopt[np.isfinite(eps_subopt)].max(), 
                 noisy_y_subopt[np.isfinite(noisy_y_subopt)].max(),
                 xk_subopt[np.isfinite(xk_subopt)].max(),
                 paverage_subopt[np.isfinite(paverage_subopt)].max(),
-                )
-
+                ) 
     proj_high_y = proj_subopt[np.isfinite(proj_subopt)]
     if proj_high_y.size > 0:
         proj_high_y = proj_subopt.max()
         high_y = max(high_y, proj_high_y)
-
+        
     labels = ["$x^k$", 
             rf"$\bar x^k, ~\epsilon_v={int(eps_sublevel*100)}\%$", 
             rf"$\bar x^k, ~\epsilon_p={int(percent*100)}\%$",
@@ -812,28 +757,66 @@ def plot_all_methods_metrics_4x(all_results_eps, all_results_noisy_y, true_f,
             r"$\frac{1}{k}\sum_{j=1}^k x^j$":all_res["viol_primal_paver_xk"][:T],
             r"$\Pi(x^k)$":np.zeros(T)}
 
+    drop_indices_label = {}
     for i, label in enumerate(labels):
         xs = np.array(subopt_of_best_feas_point_base(labels_fs[label], labels_rs[label], true_f, b_norm))
-        ax_dict['D'].plot(xs, color=cmp[i], label=label, alpha=0.9, lw=0.9)
-        try:
+        ax_dict['A'].plot(xs, color=cmp[i], label=label, alpha=0.9, lw=0.75)
+        try: # add infty symbol if unfeasible points present
             first_finite_idx = np.where(xs < np.inf)[0][0]
-            if first_finite_idx >= 1:
-                ax_dict['D'].vlines(first_finite_idx, ymin=xs[first_finite_idx], ymax=high_y, 
-                                colors=cmp[i], alpha=0.9, lw=0.9)
-                ax_dict['D'].text(first_finite_idx, high_y, r'$\infty$', color='k', 
+            indices_drop = np.concatenate([np.array([first_finite_idx]), first_finite_idx + np.where(np.diff(xs[first_finite_idx:]) < 0)[0] + 1], axis=0) 
+            drop_indices_label[label] = indices_drop if first_finite_idx >= 1 else indices_drop[1:]
+            if label in drop_indices_label and len(drop_indices_label[label]) >= 1:  
+                ax_dict['A'].scatter(drop_indices_label[label], xs[drop_indices_label[label]], color=cmp[i], marker='*', s=star_size)
+            if first_finite_idx >= 1: 
+                ax_dict['A'].vlines(first_finite_idx, ymin=xs[first_finite_idx], ymax=high_y, 
+                                colors=cmp[i], alpha=0.9, lw=0.75)
+                ax_dict['A'].text(first_finite_idx, high_y, r'$\infty$', color='k', 
                                   fontsize=10, ha='center', va='bottom')
         except: pass
-    if admm:
-        ax_dict['D'].set_ylabel(r"$|f(x) + I_{=0}(x - Ez) - f^\star|/|f^\star|$", fontsize=14)
-    else:
-        ax_dict['D'].set_ylabel(r"$|f(x) + I_{-}(Ax - b) - f^\star|/|f^\star|$", fontsize=14)
-    ax_dict['D'].set_xlabel(r'$k$', fontsize=14)
-    ax_dict['D'].set_yscale('log')
-    ax_dict['D'].set_xlim(-(T-1)*0.05, (T-1) * 1.05)
+    ax_dict['A'].set_ylabel(r"$|f(x) + I_{=0}(x - Ez) - f^\star|/|f^\star|$" if admm else "$|f(x) + I_{-}(Ax - b) - f^\star|/|f^\star|$", fontsize=14)
+    ax_dict['A'].set_xlabel(r'$k$', fontsize=14)
+    ax_dict['A'].set_yscale('log')
+    ax_dict['A'].set_xlim(-(T-1)*0.05, (T-1) * 1.05)
 
-    handles, labels = ax_dict['A'].get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper center', ncol=len(labels), bbox_to_anchor=(0.5, 1), fontsize=14)
 
-    plt.tight_layout(rect=[0, 0, 1, 0.93])
-    if filename is not None:
-        plt.savefig(folder + "%s_subopt_res_square.pdf" % filename, bbox_inches="tight")
+    panel_info = {
+        'B': { 'keys': ["f_xk","f_mra_xk","f_mra_xk","f_paver_xk","f_proj_xk"],
+               'source': [all_res, all_results_eps, all_results_noisy_y, all_res, all_res],
+               'ylabel': r"$|f(x)-f^\star|/|f^\star|$" },
+        'C': { 'keys': ["viol_primal_xk","viol_primal_mra_xk","viol_primal_mra_xk","viol_primal_paver_xk"],
+               'source': [all_res, all_results_eps, all_results_noisy_y, all_res],
+               'ylabel': (r'$r_p/\|b\|$' if b_norm0>0 and not admm else r'$r_p$') },
+        'D': { 'keys': ["viol_primal_compl_xk","viol_primal_compl_mra_xk","viol_primal_compl_mra_xk"],
+               'source': [all_res, all_results_eps, all_results_noisy_y],
+               'ylabel': (r'$r_p+r_d$' if admm else (r'$(r_p+r_c)/\|b\|$' if b_norm0>0 else r'$(r_p+r_c)$')) }
+    }
+    for panel, info in panel_info.items():
+        for i, (label, key, src) in enumerate(zip(labels, info['keys'], info['source'])):
+            shift = true_f if panel=='B' else 0
+            y = np.abs(np.array(src[key])[:T] - shift) / (np.abs(true_f) if panel=='B' else b_norm)
+            ax_dict[panel].plot(y, color=cmp[i], label=labels[i], alpha=0.9, lw=0.75)
+            if label in drop_indices_label and len(drop_indices_label[label]) >= 1:  
+                ax_dict[panel].scatter(drop_indices_label[label], y[drop_indices_label[label]], color=cmp[i], marker='*', s=star_size)
+            
+        # ax_dict[panel].set(xlabel=r'$k$', ylabel=info['ylabel'], fontsize=14)
+        ax_dict[panel].set_ylabel(info["ylabel"], fontsize=14)
+        ax_dict[panel].set_xlabel(r'$k$', fontsize=14)
+        ax_dict[panel].set_yscale('log')
+
+    ymin_row1 = min(ax_dict['A'].get_ylim()[0], ax_dict['B'].get_ylim()[0])
+    ymax_row1 = max(ax_dict['A'].get_ylim()[1], ax_dict['B'].get_ylim()[1])
+    ax_dict['A'].set_ylim(ymin_row1, ymax_row1) 
+    ax_dict['B'].set_ylim(ymin_row1, ymax_row1)  
+
+    ymin_row2 = min(ax_dict['C'].get_ylim()[0], ax_dict['D'].get_ylim()[0])
+    ymax_row2 = max(ax_dict['C'].get_ylim()[1], ax_dict['D'].get_ylim()[1])
+    ax_dict['C'].set_ylim(ymin_row2, ymax_row2) 
+    ax_dict['D'].set_ylim(ymin_row2, ymax_row2)   
+
+    # Shared legend
+    handles, labs = ax_dict['B'].get_legend_handles_labels()
+    fig.legend(handles, labs, loc='upper center', ncol=len(labs), 
+               bbox_to_anchor=(0.5,1), fontsize=14)
+    plt.tight_layout(rect=[0,0,1,0.93])
+    if filename:
+        plt.savefig(f"{folder}{filename}_subopt_res_square.pdf", bbox_inches='tight')
